@@ -1,0 +1,21 @@
+.gameboard {
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.gameboard-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+@media (max-width: 500px) {
+    .gameboard {
+        width: 100%;
+    }
+    .gameboard-grid {
+        gap: 0.2rem;
+    }
+}
