@@ -1,31 +1,36 @@
 import { useEffect } from "react";
-import { Card } from "./components/card";
+import { Card } from "./card";
 import { Pokedex } from "pokeapi-js-wrapper";
 import React, { useState } from "react";
-import "./styles/gameboard-grid.css";
+import "../styles/gameboard-grid.css";
+import Header from "./Header";
 
 function Gameboard() {
     const pokedex = new Pokedex();
-    const uniquePokemon = new Set();
-    let pokemonList = new Array();
-    const [pokemonArray, setPokemonArray] = useState([]);
-    const [flippedCards, setFlippedCards] = useState([]);
-    const [lastClicked, setLastClicked] = useState(null);
+    const uniquePokemon = new Set(); // holds unique pokemon ids
+    let pokemonList = new Array(); // holds duplicate set of pokemon ids
+    const [pokemonArray, setPokemonArray] = useState([]); // holds pokemon objects
+    const [flippedCards, setFlippedCards] = useState([]); // card ids of flipped cards
+    const [lastClicked, setLastClicked] = useState(null); // single card object
+    const [resetTrigger, setResetTrigger] = useState(false); // used for useEffect trigger
+    const [lockBoard, setLockBoard] = useState(false); // locks the board between flips
 
+    // Generate 8 unique random Pokémon
     while (uniquePokemon.size < 8) {
         const randomId = Math.floor(Math.random() * 1000);
         uniquePokemon.add(randomId);
     }
-    
+    // Create and shuffle pokemon deck
     pokemonList.push(...uniquePokemon, ...uniquePokemon);
-    let shuffled = pokemonList.sort(() => Math.random() - 0.5); // Shuffle the array
+    pokemonList.sort(() => Math.random() - 0.5);
+
 
     useEffect(() => {
         let isMounted = true; // Track if the component is still mounted
         const fetchPokemon = async () => {
             try {
                 const pokemonData = await Promise.all(
-                    [...shuffled].map(async (pokemon) => {
+                    [...pokemonList].map(async (pokemon) => {
                         return await pokedex.getPokemon(pokemon);
                     })
                 );
@@ -34,7 +39,7 @@ function Gameboard() {
                     setPokemonArray((prevData) => [...prevData, ...pokemonData]);
                 }
             } catch (error) {
-                console.error("Error fetching Pokémon data:", error);
+                console.error("Error fetching Pokémon data:", error); 
             }
         };
         fetchPokemon();
@@ -43,7 +48,7 @@ function Gameboard() {
         return () => {
             isMounted = false; // Prevent state updates if the component unmounts
         };
-    }, []);
+    }, [resetTrigger]); 
 
     
     function toggleFlippedClass(card) {
@@ -55,7 +60,7 @@ function Gameboard() {
 
     const handleClick = (clickedCard) => {
         clickedCard = clickedCard.parentElement;
-        if (flippedCards.includes(clickedCard.id)) {
+        if (flippedCards.includes(clickedCard.id) || lockBoard) {
             return;
         }
 
@@ -63,33 +68,41 @@ function Gameboard() {
             setLastClicked(clickedCard);
             toggleFlippedClass(clickedCard);
             setFlippedCards((prev) => [...prev, clickedCard.id]);
-            console.log(flippedCards)
         } else if (clickedCard.dataset.name === lastClicked.dataset.name && lastClicked.id !== clickedCard.id) {
-            console.log(clickedCard.classList)
             setFlippedCards((prev) => [...prev, clickedCard.id]);
             toggleFlippedClass(clickedCard);
             setLastClicked(null);
+            setLockBoard(true);
+            setTimeout(() => { setLockBoard(false) }, 1000);
         } else { // show clicked card then reset
             setFlippedCards((prev) => [...prev, clickedCard.id]);
             toggleFlippedClass(clickedCard);
+            setLockBoard(true);
             setTimeout(() => {
                 toggleFlippedClass(lastClicked);
                 toggleFlippedClass(clickedCard);
                 setFlippedCards((prev) => prev.filter((id) => id !== clickedCard.id && id !== lastClicked.id));
                 setLastClicked(null);
+                setLockBoard(false);
             }, 1000);
         }
     };
     
+    function resetGame() {
+        setFlippedCards([]);
+        setLastClicked(null);
+        setPokemonArray([]);
+        setResetTrigger((prev) => !prev); 
+    }
 
     return (
         <div className="gameboard">
-            <h1>Memory Board</h1>
+            <Header reset={resetGame}/>
             <div className="gameboard-grid">
                 {pokemonArray.map((pokemon, index) => (
                     <Card 
                         key={index} 
-                        pokemon={pokemon} 
+                        pokemon={pokemon}  
                         onClick={(e) => handleClick(e.target)}
                         index={index} />
                 ))}

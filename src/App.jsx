@@ -1,6 +1,6 @@
 // import { useState } from 'react'
 import './App.css'
-import Gameboard from './gameboard'
+import Gameboard from './components/gameboard';
 // import { Pokedex } from 'pokeapi-js-wrapper';
 
 function App() {
